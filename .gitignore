@@ -17,3 +17,7 @@ docs/PITCH.md
 
 # Internal dev notes — keep local only
 CLAUDE.md
+
+# PyInstaller build artifacts
+build/
+dist/

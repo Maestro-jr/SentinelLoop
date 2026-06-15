@@ -6,13 +6,17 @@ never logged. Demo mode requires no credentials at all.
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except Exception:  # dotenv is optional
-    pass
+# In a PyInstaller bundle, ignore any stray .env on the host so the shipped app
+# always boots clean in DEMO mode (no Splunk/MCP/keys needed). Run from source to go LIVE.
+if not getattr(sys, "frozen", False):
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except Exception:  # dotenv is optional
+        pass
 
 
 def _bool(val: str | None, default: bool = False) -> bool:

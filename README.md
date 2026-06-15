@@ -66,6 +66,19 @@ The app opens in **DEMO mode** using recorded fixtures, so the full experience �
 including the schema-drift self-heal — works offline. This is also the safest way to
 run the live demo.
 
+### Zero-setup demo — single-file Windows app
+
+No Python needed. Grab **`SentinelLoop.exe`** from the
+[Releases](https://github.com/Maestro-jr/SentinelLoop/releases) page and double-click it —
+the full demo runs offline (recorded BOTS v3 fixtures, the agent loop, schema-drift
+self-heal, verdict). No Splunk, no MCP server, no API keys.
+
+Build it yourself from source:
+```bash
+pip install pyinstaller
+pyinstaller sentinelloop.spec      # -> dist/SentinelLoop.exe (~43 MB, offline DEMO)
+```
+
 ### Going live against real Splunk
 
 ```bash
