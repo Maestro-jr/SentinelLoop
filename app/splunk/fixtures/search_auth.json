@@ -1,0 +1,6 @@
+{
+  "rows": [
+    {"_time": "2026-06-14T09:45:30Z", "src_host": "FIN-WK-014", "dest_host": "FILE-SRV-02", "user": "j.okafor", "logon_type": "3", "result": "success"},
+    {"_time": "2026-06-14T09:46:02Z", "src_host": "FIN-WK-014", "dest_host": "DC-01", "user": "j.okafor", "logon_type": "3", "result": "failure"}
+  ]
+}

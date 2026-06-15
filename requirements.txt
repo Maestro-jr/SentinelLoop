@@ -1,0 +1,7 @@
+# SentinelLoop — minimal, strong stack
+PyQt6>=6.6
+requests>=2.31
+python-dotenv>=1.0
+
+# Optional: live LLM planner (demo mode works without it)
+anthropic>=0.40

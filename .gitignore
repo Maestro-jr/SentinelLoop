@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
+*.log
+audit_log.csv
+.DS_Store
+docs/_preview_*.png
+
+# Internal jury strategy — keep private (README carries the public pitch)
+docs/PITCH.md
+
+# IDE
+.idea/
+.vscode/

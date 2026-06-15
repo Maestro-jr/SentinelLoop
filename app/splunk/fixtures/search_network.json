@@ -1,0 +1,7 @@
+{
+  "rows": [
+    {"_time": "2026-06-14T09:42:10Z", "host": "FIN-WK-014", "dest_ip": "185.220.101.47", "dest_port": "443", "bytes_out": "1840", "interval_s": "60", "reputation": "malicious"},
+    {"_time": "2026-06-14T09:43:11Z", "host": "FIN-WK-014", "dest_ip": "185.220.101.47", "dest_port": "443", "bytes_out": "1792", "interval_s": "60", "reputation": "malicious"},
+    {"_time": "2026-06-14T09:44:10Z", "host": "FIN-WK-014", "dest_ip": "185.220.101.47", "dest_port": "443", "bytes_out": "1855", "interval_s": "60", "reputation": "malicious"}
+  ]
+}

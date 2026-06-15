@@ -1,0 +1,7 @@
+{
+  "rows": [
+    {"_time": "2026-06-14T09:41:02Z", "host": "FIN-WK-014", "parent_process": "WINWORD.EXE", "process": "powershell.exe", "command_line": "powershell -nop -w hidden -enc SQBFAFgAIAA...", "user": "j.okafor"},
+    {"_time": "2026-06-14T09:41:03Z", "host": "FIN-WK-014", "parent_process": "powershell.exe", "process": "cmd.exe", "command_line": "cmd /c whoami /all", "user": "j.okafor"},
+    {"_time": "2026-06-14T09:41:05Z", "host": "FIN-WK-014", "parent_process": "powershell.exe", "process": "rundll32.exe", "command_line": "rundll32 C:\\Users\\Public\\b.dll,Start", "user": "j.okafor"}
+  ]
+}
