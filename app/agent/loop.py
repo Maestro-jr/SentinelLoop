@@ -19,11 +19,13 @@ _AUDIT_CSV = Path("audit_log.csv")  # the "second alert action" — local CSV au
 
 class TriageAgent:
     def __init__(self, splunk, planner, emit: Callable[[StepEvent], None] | None = None,
-                 step_delay: float = 0.7):
+                 step_delay: float = 0.7, write_back: bool = True, audit_csv: bool = True):
         self.splunk = splunk
         self.planner = planner
         self.emit = emit or (lambda e: None)
         self.delay = step_delay
+        self.write_back = write_back
+        self.audit_csv = audit_csv
 
     def _step(self, ev: StepEvent) -> None:
         self.emit(ev)
@@ -73,13 +75,14 @@ class TriageAgent:
 
         # Act: audit to CSV (second alert action) + write-back annotation to Splunk.
         actions: list[str] = []
-        try:
-            self._write_audit(alert, verdict)
-            actions.append("Audit record appended to audit_log.csv")
-        except Exception:
-            pass
-        if self.splunk.post_annotation(alert.id, f"SentinelLoop verdict: {plan.severity} "
-                                                 f"({int(plan.confidence*100)}%)"):
+        if self.audit_csv:
+            try:
+                self._write_audit(alert, verdict)
+                actions.append("Audit record appended to audit_log.csv")
+            except Exception:
+                pass
+        if self.write_back and self.splunk.post_annotation(
+                alert.id, f"SentinelLoop verdict: {plan.severity} ({int(plan.confidence*100)}%)"):
             actions.append("Annotation written back to Splunk")
         verdict.actions_taken = actions
         for a in actions:

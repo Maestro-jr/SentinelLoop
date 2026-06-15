@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
 
 from app.agent.worker import AgentWorker
 from app.ui import theme
-from app.ui.icons import icon_pixmap
+from app.ui.icons import icon_pixmap, logo_pixmap
 from app.ui.widgets.gauge import PulseDot
 from app.ui.widgets.monitors import EcgMonitor
 from app.ui.screens.alert_queue import AlertQueueScreen
@@ -64,13 +64,20 @@ class Shell(QMainWindow):
         body.setSpacing(0)
         body.addWidget(self._build_sidebar())
 
+        # Shared, mutable settings the Settings screen edits and the agent reads.
+        self._state = {
+            "step_delay": cfg.step_delay,
+            "write_back": True,
+            "audit_csv": True,
+        }
+
         self._stack = QStackedWidget()
         alerts = self._alerts_cache
         self._alerts = AlertQueueScreen()
         self._console = AgentConsoleScreen()
         self._verdict = VerdictScreen()
-        self._settings = SettingsScreen(cfg, splunk.name, type(planner).__name__)
-        for w in (self._alerts, self._console, self._verdict, self._settings):
+        self._settings_screen = SettingsScreen(cfg, splunk, self._state)
+        for w in (self._alerts, self._console, self._verdict, self._settings_screen):
             self._stack.addWidget(w)
         body.addWidget(self._stack, 1)
         outer.addLayout(body, 1)
@@ -92,7 +99,13 @@ class Shell(QMainWindow):
         lay.setContentsMargins(20, 0, 14, 0)
         lay.setSpacing(10)
 
-        # wordmark (no logo icon, per request)
+        # logo mark + wordmark
+        logo = QLabel()
+        logo.setPixmap(logo_pixmap(36))
+        logo.setFixedSize(40, 40)
+        logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lay.addWidget(logo, 0, Qt.AlignmentFlag.AlignVCenter)
+        lay.addSpacing(4)
         wm = QVBoxLayout()
         wm.setSpacing(0)
         brand = QLabel("SENTINELLOOP")
@@ -115,12 +128,12 @@ class Shell(QMainWindow):
 
         lay.addStretch(0)
         # DEMO / LIVE pill
-        mode = QLabel("DEMO" if self._cfg.is_demo else "LIVE")
+        mode = QLabel(("●  DEMO" if self._cfg.is_demo else "●  LIVE"))
         mode.setObjectName("modePill")
         col = theme.K_DRIFT if self._cfg.is_demo else theme.K_RESULT
         mode.setStyleSheet(
             f"QLabel#modePill {{ color:{col}; border:1px solid {col}; border-radius:13px;"
-            "padding:5px 14px; font-weight:800; letter-spacing:1px; font-size:12px; }}")
+            "padding:5px 16px; font-weight:800; letter-spacing:1px; font-size:12px; }}")
         lay.addWidget(mode)
 
         lay.addWidget(self._topbar_icon("activity", lambda: None))
@@ -261,6 +274,11 @@ class Shell(QMainWindow):
         cl.addWidget(cs)
         copilot.addLayout(cl)
         copilot.addStretch(1)
+        # connector line → pulsing online dot
+        line = QLabel(); line.setFixedSize(22, 2)
+        line.setStyleSheet(f"background:{theme.BORDER}; border-radius:1px;")
+        copilot.addWidget(line, 0, Qt.AlignmentFlag.AlignVCenter)
+        copilot.addSpacing(6)
         self._online = PulseDot(color=theme.K_RESULT)
         self._online.start()
         copilot.addWidget(self._online, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -297,7 +315,10 @@ class Shell(QMainWindow):
         self._console.reset(alert)
         self._goto(1)
         self._worker = AgentWorker(
-            self._splunk, self._planner, alert, step_delay=self._cfg.step_delay)
+            self._splunk, self._planner, alert,
+            step_delay=self._state["step_delay"],
+            write_back=self._state["write_back"],
+            audit_csv=self._state["audit_csv"])
         self._worker.step.connect(self._console.add_step)
         self._worker.finished_verdict.connect(self._on_verdict)
         self._worker.failed.connect(lambda msg: print("agent failed:", msg))

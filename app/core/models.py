@@ -19,11 +19,12 @@ class Severity(str, Enum):
 
     @property
     def color(self) -> str:
+        # Clear traffic-light mapping: red / yellow / green for high / medium / low.
         return {
-            "CRITICAL": "#ff4d6d",
-            "HIGH": "#ff9e00",
-            "MEDIUM": "#ffd60a",
-            "LOW": "#4dd4ac",
+            "CRITICAL": "#ff3b5c",
+            "HIGH": "#ff4d6d",     # red
+            "MEDIUM": "#ffb020",   # amber-yellow
+            "LOW": "#34d399",      # green
             "INFO": "#7b8cff",
         }[self.value]
 

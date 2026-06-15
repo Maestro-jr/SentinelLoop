@@ -12,10 +12,12 @@ class AgentWorker(QThread):
     finished_verdict = pyqtSignal(object)  # Verdict
     failed = pyqtSignal(str)
 
-    def __init__(self, splunk, planner, alert, step_delay: float = 0.7, parent=None):
+    def __init__(self, splunk, planner, alert, step_delay: float = 0.7,
+                 write_back: bool = True, audit_csv: bool = True, parent=None):
         super().__init__(parent)
         self._alert = alert
-        self._agent = TriageAgent(splunk, planner, emit=self.step.emit, step_delay=step_delay)
+        self._agent = TriageAgent(splunk, planner, emit=self.step.emit, step_delay=step_delay,
+                                  write_back=write_back, audit_csv=audit_csv)
 
     def run(self) -> None:
         try:

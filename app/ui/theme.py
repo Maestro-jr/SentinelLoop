@@ -119,6 +119,24 @@ QLineEdit {{ background: {BG_CANVAS}; border: 1px solid {BORDER}; border-radius:
              padding: 9px 12px; color: {TEXT}; selection-background-color: {ACCENT_DEEP}; }}
 QLineEdit:focus {{ border: 1px solid {ACCENT}; }}
 
+/* Sliders (Settings) */
+QSlider::groove:horizontal {{ height: 6px; background: {BORDER}; border-radius: 3px; }}
+QSlider::sub-page:horizontal {{ background: {ACCENT}; border-radius: 3px; }}
+QSlider::handle:horizontal {{ width: 16px; height: 16px; margin: -6px 0; border-radius: 8px;
+                              background: {ACCENT_BRIGHT}; border: 2px solid {BG_CANVAS}; }}
+QSlider::handle:horizontal:hover {{ background: white; }}
+
+/* Checkboxes (Settings toggles) */
+QCheckBox {{ spacing: 10px; color: {TEXT_DIM}; }}
+QCheckBox::indicator {{ width: 18px; height: 18px; border: 1px solid {BORDER}; border-radius: 5px;
+                        background: {BG_CANVAS}; }}
+QCheckBox::indicator:hover {{ border-color: {ACCENT}; }}
+QCheckBox::indicator:checked {{ background: {ACCENT}; border-color: {ACCENT_BRIGHT}; }}
+
+/* Settings key labels */
+QLabel#setKey {{ color: {TEXT_DIM}; font-size: 13px; }}
+QLabel#setVal {{ color: {TEXT}; font-weight: 600; font-size: 13px; }}
+
 /* Tables */
 QTableWidget {{ background: {BG_PANEL}; border: 1px solid {BORDER_SOFT}; border-radius: 10px;
                 gridline-color: {BORDER_SOFT}; }}

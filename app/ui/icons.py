@@ -73,6 +73,14 @@ def _draw(name: str, p: QPainter, color: str) -> None:
         path.lineTo(8, 12); path.lineTo(10.5, 6); path.lineTo(14, 18)
         path.lineTo(16, 12); path.lineTo(20, 12)
         p.drawPath(path)
+    elif name == "kebab":          # vertical 3-dot menu
+        p.setBrush(QColor(color))
+        for y in (7, 12, 17):
+            p.drawEllipse(QPointF(12, y), 1.5, 1.5)
+    elif name == "dots":           # horizontal 3-dot menu
+        p.setBrush(QColor(color))
+        for x in (7, 12, 17):
+            p.drawEllipse(QPointF(x, 12), 1.5, 1.5)
 
 
 def icon_pixmap(name: str, color: str = "#a191c9", size: int = 20) -> QPixmap:
@@ -82,5 +90,46 @@ def icon_pixmap(name: str, color: str = "#a191c9", size: int = 20) -> QPixmap:
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
     p.scale(size / 24.0, size / 24.0)
     _draw(name, p, color)
+    p.end()
+    return pm
+
+
+def logo_pixmap(size: int = 34) -> QPixmap:
+    """The SentinelLoop mark: a faceted neon-purple hexagon with a loop glyph."""
+    import math
+    from PyQt6.QtGui import QLinearGradient
+
+    pm = QPixmap(size, size)
+    pm.fill(Qt.GlobalColor.transparent)
+    p = QPainter(pm)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    p.scale(size / 24.0, size / 24.0)
+
+    cx, cy, r = 12, 12, 11
+    pts = [QPointF(cx + r * math.cos(math.radians(60 * i - 90)),
+                   cy + r * math.sin(math.radians(60 * i - 90))) for i in range(6)]
+    hexp = QPainterPath(pts[0])
+    for pt in pts[1:]:
+        hexp.lineTo(pt)
+    hexp.closeSubpath()
+
+    grad = QLinearGradient(0, 0, 24, 24)
+    grad.setColorAt(0.0, QColor("#c77dff"))
+    grad.setColorAt(0.55, QColor("#8b30e0"))
+    grad.setColorAt(1.0, QColor("#5a189a"))
+    p.fillPath(hexp, grad)
+
+    # top-left facet highlight
+    facet = QPainterPath(pts[5]); facet.lineTo(pts[0]); facet.lineTo(QPointF(cx, cy)); facet.closeSubpath()
+    hi = QColor("#e0aaff"); hi.setAlpha(70)
+    p.fillPath(facet, hi)
+
+    # inner "loop" glyph (two interlocked arcs) in deep shade
+    pen = QPen(QColor("#1a0b2e"), 1.8)
+    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+    p.setPen(pen)
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    p.drawArc(QRectF(7.5, 8.0, 6.0, 8.0), 90 * 16, 220 * 16)
+    p.drawArc(QRectF(10.5, 8.0, 6.0, 8.0), -90 * 16, 220 * 16)
     p.end()
     return pm

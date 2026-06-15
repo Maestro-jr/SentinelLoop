@@ -94,6 +94,9 @@ class FixtureSplunk:
         # Demo: no network. Pretend-write succeeds.
         return True
 
+    def test_connection(self) -> tuple[bool, str]:
+        return True, "DEMO mode — using recorded fixtures (no network)."
+
 
 class LiveSplunk:
     """Real Splunk via REST search/jobs (oneshot). Minimal on purpose."""
@@ -107,6 +110,13 @@ class LiveSplunk:
         self._requests = requests
         self._base = f"https://{host}:{port}"
         self._verify = verify_ssl
+        if not verify_ssl:
+            # Local Splunk uses a self-signed cert; silence the (expected) noise.
+            try:
+                import urllib3
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            except Exception:
+                pass
         self._auth = None
         self._headers = {}
         if token:
@@ -236,6 +246,13 @@ class LiveSplunk:
             return True
         except SplunkError:
             return False
+
+    def test_connection(self) -> tuple[bool, str]:
+        try:
+            self._oneshot("| makeresults | eval ok=1")
+            return True, f"Connected to {self._base}"
+        except Exception as exc:  # noqa: BLE001 - surface any failure to the UI
+            return False, str(exc)[:140]
 
 
 def make_splunk(cfg) -> FixtureSplunk | LiveSplunk:

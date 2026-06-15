@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QColor
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame, QScrollArea,
-    QProgressBar, QButtonGroup,
+    QProgressBar, QButtonGroup, QGraphicsDropShadowEffect,
 )
 
 from app.core.models import Alert, Severity
@@ -26,20 +26,40 @@ def _tag_chip(text: str) -> QLabel:
     return chip
 
 
+def _kebab() -> QPushButton:
+    b = QPushButton()
+    b.setObjectName("iconBtn")
+    b.setIcon(QIcon(icon_pixmap("kebab", theme.TEXT_MUTED, 18)))
+    b.setIconSize(QSize(18, 18))
+    b.setFixedSize(26, 26)
+    b.setCursor(Qt.CursorShape.PointingHandCursor)
+    return b
+
+
 class _AlertCard(QFrame):
     investigate = pyqtSignal(object)
+    case_toggled = pyqtSignal(object, bool)
 
     def __init__(self, alert: Alert):
         super().__init__()
         self.setObjectName("card")
         self._alert = alert
+        self._in_case = False
         col = alert.severity.color
+
+        # soft neon glow
+        glow = QGraphicsDropShadowEffect(self)
+        glow.setBlurRadius(30)
+        glow.setOffset(0, 3)
+        gc = QColor(theme.ACCENT_GLOW); gc.setAlpha(85)
+        glow.setColor(gc)
+        self.setGraphicsEffect(glow)
 
         lay = QHBoxLayout(self)
         lay.setContentsMargins(18, 16, 18, 16)
         lay.setSpacing(18)
 
-        # radar
+        # radar (severity-coloured, always sweeping)
         lay.addWidget(RadarWidget(color=col, size=92), 0, Qt.AlignmentFlag.AlignVCenter)
 
         # middle
@@ -56,9 +76,17 @@ class _AlertCard(QFrame):
         title.setStyleSheet("font-size:15px; font-weight:700;")
         title.setWordWrap(True)
         top.addWidget(title, 1)
-        age = QLabel(alert.age)
-        age.setObjectName("muted")
-        top.addWidget(age, 0, Qt.AlignmentFlag.AlignTop)
+        # live indicator or age
+        if alert.age == "live":
+            live = PulseDot(color=theme.K_RESULT)
+            live.start()
+            ll = QLabel("live"); ll.setStyleSheet(f"color:{theme.K_RESULT}; font-size:11px; font-weight:700;")
+            top.addWidget(ll, 0, Qt.AlignmentFlag.AlignVCenter)
+            top.addWidget(live, 0, Qt.AlignmentFlag.AlignVCenter)
+        else:
+            age = QLabel(alert.age); age.setObjectName("muted")
+            top.addWidget(age, 0, Qt.AlignmentFlag.AlignTop)
+        top.addWidget(_kebab(), 0, Qt.AlignmentFlag.AlignTop)
         mid.addLayout(top)
 
         meta = QLabel(f"{alert.id}   ·   host {alert.host}   ·   {alert.source}")
@@ -78,27 +106,23 @@ class _AlertCard(QFrame):
         mid.addLayout(tags)
         lay.addLayout(mid, 1)
 
-        # right
+        # right column
         right = QVBoxLayout()
         right.setSpacing(8)
-        cl = QLabel("AI CONFIDENCE")
-        cl.setObjectName("muted")
+        cl = QLabel("AI CONFIDENCE"); cl.setObjectName("muted")
         right.addWidget(cl)
         cv = QLabel(f"{int(alert.confidence * 100)}%")
         cv.setStyleSheet(f"color:{theme.TEXT}; font-weight:800; font-size:18px;")
         right.addWidget(cv)
         bar = QProgressBar()
-        bar.setRange(0, 100)
-        bar.setValue(int(alert.confidence * 100))
-        bar.setTextVisible(False)
-        bar.setFixedHeight(6)
+        bar.setRange(0, 100); bar.setValue(int(alert.confidence * 100))
+        bar.setTextVisible(False); bar.setFixedHeight(6)
         bar.setStyleSheet(
             f"QProgressBar {{ background:{theme.BORDER}; border:none; border-radius:3px; }}"
             f"QProgressBar::chunk {{ background:{theme.ACCENT_BRIGHT}; border-radius:3px; }}")
         right.addWidget(bar)
         right.addSpacing(2)
-        il = QLabel("IMPACT")
-        il.setObjectName("muted")
+        il = QLabel("IMPACT"); il.setObjectName("muted")
         right.addWidget(il)
         iv = QLabel(alert.impact)
         iv.setStyleSheet(f"color:{col}; font-weight:700; font-size:14px;")
@@ -110,17 +134,28 @@ class _AlertCard(QFrame):
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.clicked.connect(lambda: self.investigate.emit(self._alert))
         right.addWidget(btn)
-        case = QPushButton("  Add to Case")
-        case.setObjectName("linkBtn")
-        case.setIcon(QIcon(icon_pixmap("plus", theme.TEXT_DIM, 16)))
-        case.setCursor(Qt.CursorShape.PointingHandCursor)
-        right.addWidget(case, 0, Qt.AlignmentFlag.AlignHCenter)
+        self._case_btn = QPushButton("  Add to Case")
+        self._case_btn.setObjectName("linkBtn")
+        self._case_btn.setIcon(QIcon(icon_pixmap("plus", theme.TEXT_DIM, 16)))
+        self._case_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._case_btn.clicked.connect(self._toggle_case)
+        right.addWidget(self._case_btn, 0, Qt.AlignmentFlag.AlignHCenter)
         right.addStretch(1)
 
-        rw = QWidget()
-        rw.setLayout(right)
-        rw.setFixedWidth(190)
+        rw = QWidget(); rw.setLayout(right); rw.setFixedWidth(190)
         lay.addWidget(rw)
+
+    def _toggle_case(self) -> None:
+        self._in_case = not self._in_case
+        if self._in_case:
+            self._case_btn.setText("  ✓ In Case")
+            self._case_btn.setIcon(QIcon())
+            self._case_btn.setStyleSheet(f"color:{theme.K_RESULT}; font-weight:700;")
+        else:
+            self._case_btn.setText("  Add to Case")
+            self._case_btn.setIcon(QIcon(icon_pixmap("plus", theme.TEXT_DIM, 16)))
+            self._case_btn.setStyleSheet("")
+        self.case_toggled.emit(self._alert, self._in_case)
 
 
 class AlertQueueScreen(QWidget):
@@ -130,6 +165,7 @@ class AlertQueueScreen(QWidget):
         super().__init__()
         self._all: list[Alert] = []
         self._filter = "ALL"
+        self._case_ids: set[str] = set()
 
         root = QHBoxLayout(self)
         root.setContentsMargins(24, 20, 24, 20)
@@ -139,18 +175,14 @@ class AlertQueueScreen(QWidget):
         main = QVBoxLayout()
         main.setSpacing(12)
         head = QHBoxLayout()
-        htext = QVBoxLayout()
-        htext.setSpacing(2)
-        h1 = QLabel("ALERT QUEUE")
-        h1.setObjectName("h1")
+        htext = QVBoxLayout(); htext.setSpacing(2)
+        h1 = QLabel("ALERT QUEUE"); h1.setObjectName("h1")
         sub = QLabel("Autonomous triage by AI agents  ·  prioritized by risk and context")
         sub.setObjectName("dim")
-        htext.addWidget(h1)
-        htext.addWidget(sub)
+        htext.addWidget(h1); htext.addWidget(sub)
         head.addLayout(htext)
         head.addStretch(1)
-        self._pills_box = QHBoxLayout()
-        self._pills_box.setSpacing(6)
+        self._pills_box = QHBoxLayout(); self._pills_box.setSpacing(6)
         head.addLayout(self._pills_box)
         main.addLayout(head)
 
@@ -159,8 +191,8 @@ class AlertQueueScreen(QWidget):
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         host = QWidget()
         self._list = QVBoxLayout(host)
-        self._list.setSpacing(12)
-        self._list.setContentsMargins(0, 0, 8, 0)
+        self._list.setSpacing(14)
+        self._list.setContentsMargins(2, 2, 10, 2)
         self._list.addStretch(1)
         scroll.setWidget(host)
         main.addWidget(scroll, 1)
@@ -209,13 +241,14 @@ class AlertQueueScreen(QWidget):
         # Alert overview
         ov = QFrame(); ov.setObjectName("card")
         ovl = QVBoxLayout(ov); ovl.setContentsMargins(16, 14, 16, 14); ovl.setSpacing(10)
-        ovl.addWidget(self._rail_title("ALERT OVERVIEW"))
+        ovl.addLayout(self._rail_header("ALERT OVERVIEW"))
         row = QHBoxLayout()
         self._donut = DonutChart(size=148)
         row.addWidget(self._donut)
         legend = QVBoxLayout(); legend.setSpacing(8)
         self._legend_rows = {}
-        for name, color in (("High", "#ff4d6d"), ("Medium", "#ffb020"), ("Low", "#4dd4ac")):
+        for name, color in (("High", Severity.HIGH.color), ("Medium", Severity.MEDIUM.color),
+                            ("Low", Severity.LOW.color)):
             lr = QHBoxLayout(); lr.setSpacing(8)
             dot = QLabel("●"); dot.setStyleSheet(f"color:{color}; font-size:12px;")
             nm = QLabel(name); nm.setObjectName("dim")
@@ -231,7 +264,7 @@ class AlertQueueScreen(QWidget):
         # Trend
         tr = QFrame(); tr.setObjectName("card")
         trl = QVBoxLayout(tr); trl.setContentsMargins(16, 14, 16, 10); trl.setSpacing(8)
-        trl.addWidget(self._rail_title("TREND (24H)"))
+        trl.addLayout(self._rail_header("TREND (24H)"))
         spark = TrendSparkline(
             [12, 9, 14, 11, 8, 10, 16, 13, 19, 15, 22, 18, 24, 20, 28, 23, 26, 31, 27, 34, 30, 38, 33, 41],
             height=84)
@@ -241,7 +274,7 @@ class AlertQueueScreen(QWidget):
         # Top techniques
         tt = QFrame(); tt.setObjectName("card")
         ttl = QVBoxLayout(tt); ttl.setContentsMargins(16, 14, 16, 14); ttl.setSpacing(9)
-        ttl.addWidget(self._rail_title("TOP ATTACK TECHNIQUES"))
+        ttl.addLayout(self._rail_header("TOP ATTACK TECHNIQUES"))
         for tid, name, n, mx in (("T1059.001", "PowerShell", 6, 6),
                                  ("T1110.001", "Brute Force", 5, 6),
                                  ("T1074.001", "Data Staging", 3, 6),
@@ -253,7 +286,7 @@ class AlertQueueScreen(QWidget):
         # System health
         sh = QFrame(); sh.setObjectName("card")
         shl = QVBoxLayout(sh); shl.setContentsMargins(16, 14, 16, 14); shl.setSpacing(10)
-        shl.addWidget(self._rail_title("SYSTEM HEALTH"))
+        shl.addLayout(self._rail_header("SYSTEM HEALTH"))
         for label, status in (("Splunk Connection", "Healthy"), ("AI Agents", "Online"),
                               ("Planner / LLM", "Ready"), ("Data Ingestion", "Live")):
             shl.addLayout(self._health_row(label, status))
@@ -261,10 +294,13 @@ class AlertQueueScreen(QWidget):
         v.addStretch(1)
         return rail
 
-    def _rail_title(self, text: str) -> QLabel:
-        l = QLabel(text)
-        l.setStyleSheet(f"color:{theme.TEXT_DIM}; font-weight:800; font-size:11px; letter-spacing:1.5px;")
-        return l
+    def _rail_header(self, text: str) -> QHBoxLayout:
+        row = QHBoxLayout(); row.setContentsMargins(0, 0, 0, 0)
+        t = QLabel(text)
+        t.setStyleSheet(f"color:{theme.TEXT_DIM}; font-weight:800; font-size:11px; letter-spacing:1.5px;")
+        dots = QLabel(); dots.setPixmap(icon_pixmap("dots", theme.TEXT_MUTED, 16))
+        row.addWidget(t); row.addStretch(1); row.addWidget(dots)
+        return row
 
     def _technique_row(self, tid: str, name: str, n: int, mx: int) -> QHBoxLayout:
         row = QHBoxLayout(); row.setSpacing(8)
@@ -300,6 +336,8 @@ class AlertQueueScreen(QWidget):
         self._insight.setObjectName("dim")
         txt.addWidget(t1); txt.addWidget(self._insight)
         lay.addLayout(txt, 1)
+        chev = QLabel(); chev.setPixmap(icon_pixmap("dots", theme.TEXT_MUTED, 16))
+        lay.addWidget(chev)
         return bar
 
     # ── data ──
@@ -317,6 +355,7 @@ class AlertQueueScreen(QWidget):
         for a in self._visible():
             card = _AlertCard(a)
             card.investigate.connect(self.investigate_requested.emit)
+            card.case_toggled.connect(self._on_case)
             self._list.insertWidget(self._list.count() - 1, card)
 
     def _visible(self) -> list[Alert]:
@@ -328,15 +367,29 @@ class AlertQueueScreen(QWidget):
             return [a for a in self._all if a.severity == Severity.MEDIUM]
         return [a for a in self._all if a.severity == Severity.LOW]
 
+    def _on_case(self, alert: Alert, added: bool) -> None:
+        if added:
+            self._case_ids.add(alert.id)
+        else:
+            self._case_ids.discard(alert.id)
+        self._refresh_insight()
+
     def _refresh_rail(self) -> None:
         high = sum(1 for a in self._all if a.severity in (Severity.HIGH, Severity.CRITICAL))
         med = sum(1 for a in self._all if a.severity == Severity.MEDIUM)
         low = sum(1 for a in self._all if a.severity == Severity.LOW)
-        self._donut.set_data([(high, "#ff4d6d"), (med, "#ffb020"), (low, "#4dd4ac")],
-                             str(len(self._all)), "Total")
+        self._donut.set_data(
+            [(high, Severity.HIGH.color), (med, Severity.MEDIUM.color), (low, Severity.LOW.color)],
+            str(len(self._all)), "Total")
         self._legend_rows["High"].setText(str(high))
         self._legend_rows["Medium"].setText(str(med))
         self._legend_rows["Low"].setText(str(low))
-        self._insight.setText(
-            f"{high} high-priority alert(s) need attention. "
-            "1 alert chain spans PowerShell → C2 → lateral movement.")
+        self._refresh_insight()
+
+    def _refresh_insight(self) -> None:
+        high = sum(1 for a in self._all if a.severity in (Severity.HIGH, Severity.CRITICAL))
+        msg = (f"{high} high-priority alert(s) need attention. "
+               "1 alert chain spans PowerShell → C2 → lateral movement.")
+        if self._case_ids:
+            msg += f"   •   {len(self._case_ids)} alert(s) added to the active case."
+        self._insight.setText(msg)
