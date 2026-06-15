@@ -96,3 +96,49 @@
 - Drift heal not dramatic enough → raise `SENTINEL_STEP_DELAY` to 1.0–1.2.
 - Live Splunk flaky → stay in DEMO; the experience is identical and never fails.
 - Verdict feels thin → narrate the MITRE chips one by one to fill the beat.
+
+---
+
+## FINAL 3-minute script (target 2:55) — shot-by-shot + voiceover
+
+**Setup before recording:** MCP server running; `SENTINEL_STEP_DELAY=0.2`; capture a
+*golden* autonomous run first (live LLM paths vary); 1080p, app maximized.
+
+**[0:00–0:18] Hook + problem** — *Alert Queue, radars sweeping.*
+> Every SOC runs on saved searches and dashboards — and they share two problems. A human
+> still has to investigate every alert by hand, and the moment a field gets renamed, that
+> automation silently breaks. This is SentinelLoop: an autonomous SOC analyst that does the
+> investigation for you — on live Splunk data — and heals its own queries when the schema drifts.
+
+**[0:18–0:35] It's real, on real data** — *Point to green ● LIVE pill, then the cards. Click Investigate on PS-ENC.*
+> This isn't a mockup. It's connected to a real Splunk Enterprise loaded with Boss-of-the-SOC
+> v3. Every alert here came from a detection running against that data. Let's take the
+> encoded-PowerShell alert on host ABUNGST-L.
+
+**[0:35–1:45] The autonomous agent (core)** — *Agent Console streaming.*
+> Watch — the agent isn't following a script; an LLM decides each next query from what it just
+> saw. And before it runs anything, every query is validated through the Splunk MCP Server.
+> … It pulls the process tree, sees the encoded PowerShell, then pivots on its own to check
+> what else ran and who logged in.
+> [on drift heal] Here — a query hit a field that doesn't exist on this data, so it returned
+> nothing. A normal dashboard just shows empty and no one notices. The agent detects it and
+> rewrites the query to the correct field. That's the self-healing.
+> [on anomalydetection] It even calls Splunk's own machine learning to flag the outlier hosts
+> to hunt next.
+
+**[1:45–2:10] Verdict + closing the loop** — *Verdict screen; click Approve & Execute.*
+> It concludes: high severity, mapped to MITRE ATT&CK, with a plain-English narrative and a
+> recommended action — all from evidence it gathered itself. Nothing is automatic — I approve,
+> and it writes the verdict back to Splunk and logs an audit record. Human-in-the-loop.
+
+**[2:10–2:35] Why it fits** — *Architecture / repo.*
+> Under the hood: real SPL through the Splunk MCP Server, Splunk-native ML, and an agentic
+> perceive-reason-act loop. It runs on free and local models — no lock-in — and ships as a
+> single offline executable, so anyone can try it in one click.
+
+**[2:35–2:55] Close** — *README / repo.*
+> SentinelLoop — security track. It cuts alert-fatigue and fixes the brittle automation every
+> SOC fights. Open-source, MIT-licensed. Thanks for watching.
+
+**Delivery:** speak ~10% faster than natural; if the live run wanders, cut to the golden
+recording for 0:35–1:45; never leave dead air during an LLM step — the VO covers the latency.
