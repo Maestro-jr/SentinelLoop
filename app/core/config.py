@@ -31,6 +31,7 @@ class Config:
     splunk_username: str
     splunk_password: str
     splunk_verify_ssl: bool
+    splunk_mcp_url: str
     anthropic_api_key: str
     model: str
 
@@ -60,6 +61,7 @@ def load_config() -> Config:
         splunk_username=os.getenv("SPLUNK_USERNAME", "").strip(),
         splunk_password=os.getenv("SPLUNK_PASSWORD", "").strip(),
         splunk_verify_ssl=_bool(os.getenv("SPLUNK_VERIFY_SSL"), False),
+        splunk_mcp_url=os.getenv("SPLUNK_MCP_URL", "").strip(),
         anthropic_api_key=os.getenv("ANTHROPIC_API_KEY", "").strip(),
         model=os.getenv("SENTINEL_MODEL", "claude-opus-4-8").strip(),
     )

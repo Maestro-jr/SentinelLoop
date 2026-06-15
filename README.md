@@ -35,11 +35,18 @@ You watch the whole thing happen live, step by step, in the **Agent Console**.
 ## Why it uses Splunk + AI
 
 - **Splunk data:** every investigative step is a real SPL search against Splunk
-  (`search/jobs/export`); alerts come from Splunk notables.
-- **Splunk AI / LLM reasoning:** an LLM planner (Claude `claude-opus-4-8`, or Splunk's
-  AI Assistant for SPL in a live deployment) turns the agent's intent into SPL and
-  **rewrites broken SPL on schema drift**. The triage decision is an agentic loop, not a
-  single prompt.
+  (`search/jobs/export`). The alert queue is generated from curated detections over real
+  data (validated against the **BOTS v3** dataset).
+- **Splunk's own AI/ML:** the agent runs Splunk-native machine learning in the loop —
+  `| anomalydetection` over fleet process volume to surface statistical outlier hosts — so
+  the investigation is driven by *Splunk's* AI capability, not just an external model.
+- **Splunk MCP Server (optional):** the agent can route all Splunk access through the
+  official [Splunk MCP server](https://github.com/splunk/splunk-mcp-server2) — a genuine
+  agentic tool layer (`search_oneshot`, `validate_spl`, …). See
+  [`docs/MCP_SETUP.md`](docs/MCP_SETUP.md). Falls back to direct REST if absent.
+- **LLM reasoning (optional):** Claude (`claude-opus-4-8`) can generate/heal SPL; the
+  deterministic `BotsV3Planner` backs the live demo. Either way it's an agentic
+  perceive→reason→act loop, not a single prompt.
 
 ---
 

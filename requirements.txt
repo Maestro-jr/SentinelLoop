@@ -5,3 +5,6 @@ python-dotenv>=1.0
 
 # Optional: live LLM planner (demo mode works without it)
 anthropic>=0.40
+
+# Optional: route Splunk access through the Splunk MCP Server (set SPLUNK_MCP_URL)
+mcp>=1.2

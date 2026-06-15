@@ -76,6 +76,8 @@
 | **DEMO/LIVE pill = real Splunk** — show the pill on LIVE while the queue holds real BOTS v3 alerts | Alert Queue top bar | 0:18 | Proves it's hitting a real Splunk, not a mockup | ✅ built |
 | **Honest live schema-drift heal on real data** — `process_name` query returns 0 rows → agent heals to `New_Process_Name` → real rows from `index=botsv3` | Agent Console | 0:50–1:15 | THE money moment, and it's genuine (no fakery) | ✅ built |
 | Verdict written back to Splunk + CSV audit (actions strip) | Verdict | 2:20 | Closes the loop; adoptable by a real SOC | ✅ built |
+| **Splunk's own ML in the loop** — the agent runs `\| anomalydetection` and surfaces an outlier host | Agent Console | 1:15–1:35 | Answers "where's the Splunk AI?" for the Grand Prize | ✅ built |
+| **Backend = "LIVE (Splunk MCP Server)"** + Test Connection, then every SPL flows agent → MCP → Splunk | Settings → Console | 0:40 / throughout | Earns "Best Use of Splunk MCP Server"; literal Agentic Ops | ⚙️ needs MCP server running |
 | *(add new ones here as we build)* | | | | |
 
 > **Live-vs-demo call:** the strongest jury moment is running the hero investigation in

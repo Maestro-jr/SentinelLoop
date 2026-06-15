@@ -51,6 +51,17 @@ class BotsV3Planner:
                     correlate="Recon/LOLBins alongside the cradle point to hands-on activity, not a one-off.",
                 ),
                 InvestigationStep(
+                    thought=("Now let Splunk's own ML weigh in: run the native anomalydetection "
+                             "command across the fleet's process volume to surface statistically "
+                             "unusual hosts I should pivot to next."),
+                    spl=("search index=botsv3 sourcetype=wineventlog:security EventCode=4688 "
+                         "| stats count as procs by host | anomalydetection action=annotate "
+                         "| sort -procs | head 8"),
+                    result_caption="Splunk ML (anomalydetection) — outlier hosts by process volume",
+                    correlate="Splunk's anomalydetection scores each host probabilistically; the "
+                              "flagged outliers are the next hunt targets beyond the cradle host.",
+                ),
+                InvestigationStep(
                     thought="Finally, check successful logons on this host to gauge account usage.",
                     spl=(f"search index=botsv3 sourcetype=wineventlog:security EventCode=4624 host={h} "
                          f"| stats count by Account_Name | sort -count | head 8"),

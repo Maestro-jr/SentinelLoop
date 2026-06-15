@@ -255,10 +255,25 @@ class LiveSplunk:
             return False, str(exc)[:140]
 
 
-def make_splunk(cfg) -> FixtureSplunk | LiveSplunk:
-    """Factory: pick the backend from config. Always safe to call."""
+def make_splunk(cfg):
+    """Factory: pick the backend from config. Always safe to call.
+
+    DEMO            -> FixtureSplunk (offline)
+    LIVE + MCP url  -> McpSplunk (agent -> Splunk MCP Server; REST fallback inside)
+    LIVE            -> LiveSplunk (direct REST search/jobs)
+    """
     if cfg.is_demo:
         return FixtureSplunk()
+    if cfg.splunk_mcp_url:
+        try:
+            from app.splunk.mcp_client import McpSplunk
+            return McpSplunk(
+                cfg.splunk_mcp_url, host=cfg.splunk_host, port=cfg.splunk_port,
+                token=cfg.splunk_token, username=cfg.splunk_username,
+                password=cfg.splunk_password, verify_ssl=cfg.splunk_verify_ssl,
+            )
+        except Exception:
+            pass  # MCP setup failed entirely -> direct REST
     return LiveSplunk(
         host=cfg.splunk_host, port=cfg.splunk_port, token=cfg.splunk_token,
         username=cfg.splunk_username, password=cfg.splunk_password,
