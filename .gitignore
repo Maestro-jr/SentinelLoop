@@ -14,3 +14,6 @@ docs/PITCH.md
 # IDE
 .idea/
 .vscode/
+
+# Internal dev notes — keep local only
+CLAUDE.md
