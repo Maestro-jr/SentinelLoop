@@ -82,9 +82,7 @@ pyinstaller sentinelloop.spec      # -> dist/SentinelLoop.exe (~43 MB, offline D
 ### Going live against real Splunk
 
 ```bash
-cp .env.example .env
-# set SENTINEL_MODE=LIVE, SPLUNK_HOST, SPLUNK_TOKEN (or username/password)
-# optional: ANTHROPIC_API_KEY for LLM-generated SPL healing
+cp .env.example .env       # then edit it (see the variables below)
 python run.py
 ```
 
@@ -93,10 +91,14 @@ python run.py
 | `SENTINEL_MODE` | `DEMO` (fixtures) or `LIVE` (real Splunk) |
 | `SPLUNK_HOST` / `SPLUNK_PORT` | Splunk REST endpoint (default port 8089) |
 | `SPLUNK_TOKEN` *or* `SPLUNK_USERNAME`/`SPLUNK_PASSWORD` | Auth |
-| `ANTHROPIC_API_KEY` / `SENTINEL_MODEL` | Optional LLM planner |
-| `SENTINEL_STEP_DELAY` | Seconds between on-screen steps (drama dial) |
+| `SPLUNK_MCP_URL` | Splunk MCP server base URL (e.g. `http://127.0.0.1:8050`); blank = direct REST |
+| `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` | Autonomous LLM planner (free **Groq** by default; swappable to Ollama/Gemini/Splunk-hosted). Blank = deterministic planner |
+| `SENTINEL_STEP_DELAY` | Seconds between on-screen steps (pacing) |
 
-Secrets are read from the environment only — never hardcoded, logged, or committed.
+**Dataset:** the live experience uses Splunk's free **Boss of the SOC v3 (BOTS v3)** dataset
+in `index=botsv3`. Setup + the Splunk MCP server: [`docs/SPLUNK_SETUP.md`](docs/SPLUNK_SETUP.md),
+[`docs/MCP_SETUP.md`](docs/MCP_SETUP.md). Secrets are read from the environment only — never
+hardcoded, logged, or committed.
 
 ---
 
@@ -131,23 +133,26 @@ Three clean layers — UI never imports agent internals; the agent never imports
 └───────────────────────────────────────────────────────────────────┘
 ```
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for detail. Pitch:
-[`docs/PITCH.md`](docs/PITCH.md). Demo runbook: [`docs/VIDEO_SCRIPT.md`](docs/VIDEO_SCRIPT.md).
+**Full architecture diagram (required reading):** [`architecture_diagram.md`](architecture_diagram.md)
+— how the app talks to Splunk, how the AI agent/models are integrated, and the data flow.
+Component/file detail: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Demo runbook: [`docs/VIDEO_SCRIPT.md`](docs/VIDEO_SCRIPT.md).
 
 ## Repository layout
 
 ```
 SentinelLoop/
 ├── run.py                     # launcher
+├── architecture_diagram.md    # required architecture diagram (Splunk + AI + data flow)
 ├── app/
 │   ├── core/                  # config.py, models.py (dataclasses)
-│   ├── splunk/                # client.py (fixtures | REST) + fixtures/*.json
-│   ├── agent/                 # planner.py, loop.py, worker.py
-│   └── ui/                    # theme.py, shell.py, screens/
-│   └── ui/widgets/            # gauge.py (ConfidenceGauge, PulseDot)
+│   ├── splunk/                # client.py (fixtures | REST), mcp_client.py (Splunk MCP) + fixtures/*.json
+│   ├── agent/                 # loop.py, planner.py, botsv3_planner.py, autonomous.py, llm.py, worker.py
+│   └── ui/                    # theme.py, shell.py, icons.py, screens/, widgets/
 ├── tools/                     # record_fixtures.py (live → fixtures recorder)
-├── docs/                      # ARCHITECTURE · PITCH · VIDEO_SCRIPT · SPLUNK_SETUP
+├── docs/                      # ARCHITECTURE · VIDEO_SCRIPT · SPLUNK_SETUP · MCP_SETUP
 ├── tests/                     # agent-loop tests
+├── sentinelloop.spec          # PyInstaller build (one-file offline .exe)
 ├── requirements.txt
 └── .env.example
 ```
