@@ -22,7 +22,7 @@ from app.core.models import Alert, StepEvent, StepKind, Verdict, Severity
 from app.splunk.client import SchemaDriftError, FixtureSplunk
 
 _AUDIT_CSV = Path("audit_log.csv")  # the "second alert action" — local CSV audit trail
-_MAX_AUTO_STEPS = 6
+_MAX_AUTO_STEPS = 5
 # read-only guardrail: writing/dangerous SPL commands the agent may never run
 _FORBIDDEN = re.compile(
     r"\|\s*(delete|outputlookup|outputcsv|collect|sendemail|sendalert|script|"
@@ -83,9 +83,10 @@ class TriageAgent:
         timeline: list[tuple[str, str]] = []
         verdict: Verdict | None = None
 
-        for i in range(1, _MAX_AUTO_STEPS + 1):
+        for i in range(_MAX_AUTO_STEPS):
+            remaining = _MAX_AUTO_STEPS - i - 1
             try:
-                action = self.planner.decide(alert, history)
+                action = self.planner.decide(alert, history, remaining)
             except Exception as exc:  # LLM unreachable/garbled -> deterministic fallback
                 self._step(StepEvent(StepKind.ERROR, "LLM unavailable — falling back",
                                      f"{str(exc)[:140]} Switching to the deterministic planner."))
@@ -93,7 +94,7 @@ class TriageAgent:
 
             thought = (action.get("thought") or "").strip()
             if thought:
-                self._step(StepEvent(StepKind.THOUGHT, f"Step {i}: reasoning", thought))
+                self._step(StepEvent(StepKind.THOUGHT, f"Step {i + 1}: reasoning", thought))
 
             if action.get("action") == "verdict":
                 verdict = self._verdict_from_action(alert, action, timeline)
@@ -126,9 +127,18 @@ class TriageAgent:
             history.append({"spl": spl, "row_count": len(rows), "rows": rows[:8]})
 
         if verdict is None:
-            self._step(StepEvent(StepKind.CONCLUSION, "Step budget reached",
-                                 "Concluding from evidence gathered so far."))
-            verdict = self._verdict_from_action(alert, self._synth_verdict(alert), timeline)
+            # Out of search budget — ask the LLM for a final verdict from the evidence.
+            try:
+                action = self.planner.decide(alert, history, 0, force_verdict=True)
+                if action.get("action") == "verdict":
+                    verdict = self._verdict_from_action(alert, action, timeline)
+            except Exception:
+                verdict = None
+            if verdict is None:
+                verdict = self._verdict_from_action(alert, self._synth_verdict(alert), timeline)
+            self._step(StepEvent(StepKind.CONCLUSION, "Verdict",
+                                 f"Severity {verdict.severity.value} at "
+                                 f"{int(verdict.confidence*100)}% confidence."))
         else:
             self._step(StepEvent(StepKind.CONCLUSION, "Verdict",
                                  f"Severity {verdict.severity.value} at "
@@ -154,7 +164,8 @@ class TriageAgent:
         except Exception:
             msg = None
         if msg:
-            self._step(StepEvent(StepKind.CORRELATE, "Validated via Splunk MCP", str(msg)[:200]))
+            clean = " ".join(str(msg).split())  # flatten newlines
+            self._step(StepEvent(StepKind.CORRELATE, "Validated via Splunk MCP", clean[:160]))
 
     def _verdict_from_action(self, alert: Alert, action: dict,
                              timeline: list[tuple[str, str]]) -> Verdict:

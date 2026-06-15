@@ -53,10 +53,11 @@ class AutonomousPlanner:
     def model_name(self) -> str:
         return self.llm.model
 
-    def decide(self, alert, history: list[dict]) -> dict:
+    def decide(self, alert, history: list[dict], remaining: int = 3,
+               force_verdict: bool = False) -> dict:
         msgs = [
             {"role": "system", "content": _SYSTEM},
-            {"role": "user", "content": self._prompt(alert, history)},
+            {"role": "user", "content": self._prompt(alert, history, remaining, force_verdict)},
         ]
         raw = self.llm.chat(msgs)
         action = extract_json(raw)
@@ -64,7 +65,7 @@ class AutonomousPlanner:
             raise LLMError("LLM action missing 'action' field")
         return action
 
-    def _prompt(self, alert, history: list[dict]) -> str:
+    def _prompt(self, alert, history: list[dict], remaining: int, force_verdict: bool) -> str:
         lines = [
             f"ALERT {alert.id}: {alert.title}",
             f"host={alert.host}  severity={alert.severity.value}  source={alert.source}",
@@ -83,5 +84,13 @@ class AutonomousPlanner:
                     preview = json.dumps(h.get("rows", [])[:5])[:600]
                     lines.append(f"  [{i}] SPL: {h['spl']}\n"
                                  f"      {h.get('row_count', 0)} rows; sample: {preview}")
-            lines.append("\nDecide the next search, or return your verdict if you have enough.")
+        if force_verdict:
+            lines.append("\nYou are OUT of search budget. Return ONLY a verdict JSON now "
+                         "(action=verdict) with severity, confidence, mitre, narrative and "
+                         "recommended_action based on the evidence above.")
+        else:
+            lines.append(f"\nYou have {remaining} search(es) left before you must conclude. "
+                         "Prefer to conclude early: if you already have enough evidence, return "
+                         "a verdict now (action=verdict). Otherwise decide the single most "
+                         "useful next search.")
         return "\n".join(lines)
