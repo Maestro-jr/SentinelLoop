@@ -78,6 +78,7 @@
 | Verdict written back to Splunk + CSV audit (actions strip) | Verdict | 2:20 | Closes the loop; adoptable by a real SOC | ✅ built |
 | **Splunk's own ML in the loop** — the agent runs `\| anomalydetection` and surfaces an outlier host | Agent Console | 1:15–1:35 | Answers "where's the Splunk AI?" for the Grand Prize | ✅ built |
 | **Backend = "LIVE (Splunk MCP Server)"** + Test Connection, then every SPL flows agent → MCP → Splunk | Settings → Console | 0:40 / throughout | Earns "Best Use of Splunk MCP Server"; literal Agentic Ops | ⚙️ needs MCP server running |
+| **Autonomous agent decides its own next SPL** (LLM ReAct), validates each query via MCP `validate_spl`, guardrail blocks a dangerous query | Agent Console | 0:45–1:40 | The strongest "genuinely agentic AI" proof for the Grand Prize | ⚙️ needs free Groq key set |
 | *(add new ones here as we build)* | | | | |
 
 > **Live-vs-demo call:** the strongest jury moment is running the hero investigation in

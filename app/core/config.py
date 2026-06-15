@@ -32,8 +32,13 @@ class Config:
     splunk_password: str
     splunk_verify_ssl: bool
     splunk_mcp_url: str
-    anthropic_api_key: str
-    model: str
+    llm_api_key: str
+    llm_base_url: str
+    llm_model: str
+
+    @property
+    def model(self) -> str:        # back-compat alias used by the Settings screen
+        return self.llm_model
 
     @property
     def has_splunk(self) -> bool:
@@ -43,7 +48,7 @@ class Config:
 
     @property
     def has_llm(self) -> bool:
-        return bool(self.anthropic_api_key)
+        return bool(self.llm_api_key) and bool(self.llm_base_url)
 
     @property
     def is_demo(self) -> bool:
@@ -62,6 +67,8 @@ def load_config() -> Config:
         splunk_password=os.getenv("SPLUNK_PASSWORD", "").strip(),
         splunk_verify_ssl=_bool(os.getenv("SPLUNK_VERIFY_SSL"), False),
         splunk_mcp_url=os.getenv("SPLUNK_MCP_URL", "").strip(),
-        anthropic_api_key=os.getenv("ANTHROPIC_API_KEY", "").strip(),
-        model=os.getenv("SENTINEL_MODEL", "claude-opus-4-8").strip(),
+        # Generic OpenAI-compatible LLM (Groq by default; also Ollama/Gemini/OpenAI/Claude).
+        llm_api_key=(os.getenv("LLM_API_KEY") or os.getenv("GROQ_API_KEY") or "").strip(),
+        llm_base_url=os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1").strip(),
+        llm_model=os.getenv("LLM_MODEL", "llama-3.3-70b-versatile").strip(),
     )

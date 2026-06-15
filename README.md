@@ -44,9 +44,12 @@ You watch the whole thing happen live, step by step, in the **Agent Console**.
   official [Splunk MCP server](https://github.com/splunk/splunk-mcp-server2) — a genuine
   agentic tool layer (`search_oneshot`, `validate_spl`, …). See
   [`docs/MCP_SETUP.md`](docs/MCP_SETUP.md). Falls back to direct REST if absent.
-- **LLM reasoning (optional):** Claude (`claude-opus-4-8`) can generate/heal SPL; the
-  deterministic `BotsV3Planner` backs the live demo. Either way it's an agentic
-  perceive→reason→act loop, not a single prompt.
+- **Autonomous LLM agent:** with an LLM key set, a genuine **ReAct loop** decides each next
+  SPL *from the last result* (`AutonomousPlanner`), validates every query through the MCP
+  `validate_spl` tool before running it, and is guardrailed to read-only `index=botsv3`.
+  Provider-agnostic via three `LLM_*` env vars — free **Groq** by default, swappable to
+  Ollama / Gemini / a Splunk-hosted model with no code change. Falls back to the
+  deterministic `BotsV3Planner` if no key is set or the model errors mid-run.
 
 ---
 

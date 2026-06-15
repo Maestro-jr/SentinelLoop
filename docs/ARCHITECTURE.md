@@ -72,6 +72,8 @@ path, real Splunk) without forking logic.
 | `app/splunk/client.py` | `FixtureSplunk`, `LiveSplunk`, `SchemaDriftError`, `make_splunk()` |
 | `app/splunk/mcp_client.py` | `McpSplunk` — routes searches through the Splunk MCP Server (SSE), REST fallback |
 | `app/agent/botsv3_planner.py` | `BotsV3Planner` — real SPL over `index=botsv3`, incl. a Splunk-native `anomalydetection` (ML) step |
+| `app/agent/llm.py` | `OpenAICompatLLM` — provider-agnostic chat (Groq/Ollama/Gemini/…) over `requests` |
+| `app/agent/autonomous.py` | `AutonomousPlanner` — ReAct loop; LLM decides each next SPL from the last result |
 | `app/splunk/fixtures/` | Recorded JSON: alerts + per-step search results |
 | `app/agent/planner.py` | `ScriptedPlanner`, `LLMPlanner`, `InvestigationStep`, `Plan` |
 | `app/agent/loop.py` | `TriageAgent` — the loop + self-heal + actions |

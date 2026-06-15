@@ -112,6 +112,31 @@ class McpSplunk(LiveSplunk):
         result = await self._session.call_tool(self._search_tool, args)
         return _rows_from_mcp(result)
 
+    def validate_spl(self, spl: str) -> str | None:
+        """Validate a query via the MCP server's validate_spl tool (best-effort)."""
+        if not self._connected or self._session is None:
+            return None
+        try:
+            return self._run(self._avalidate(spl), timeout=20.0)
+        except Exception:  # noqa: BLE001
+            return None
+
+    async def _avalidate(self, spl: str):
+        q = spl.strip()
+        if q[:7].lower() == "search ":
+            q = q[7:].lstrip()
+        result = await self._session.call_tool("validate_spl", {self._search_arg: q})
+        structured = getattr(result, "structuredContent", None)
+        data = structured.get("result") if isinstance(structured, dict) and isinstance(
+            structured.get("result"), dict) else structured
+        if isinstance(data, dict):
+            score = data.get("risk_score")
+            msg = data.get("risk_message") or data.get("message")
+            if score is not None:
+                return f"risk {score} — {msg or 'within tolerance'}"
+            return msg or "validated (no blocking risks)"
+        return "validated via Splunk MCP"
+
     def test_connection(self) -> tuple[bool, str]:
         if self._connected:
             try:
