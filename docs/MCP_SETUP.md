@@ -56,6 +56,29 @@ agent → Splunk MCP Server → Splunk.
 background event loop). All detections, `run_spl`, `post_annotation`, drift-heal and
 `list_alerts` logic are reused unchanged. On any MCP error it falls back to direct REST.
 
+## Troubleshooting (issues we actually hit)
+- **`FastMCP.__init__() got an unexpected keyword argument 'description'`** — newer `mcp`
+  SDK dropped it. In `splunk-mcp-server2/python/server.py`, remove the
+  `description=os.getenv("SERVER_DESCRIPTION", …),` line from the `FastMCP(...)` call.
+- **`pip install mcp` fails with "Cannot uninstall typing-extensions … no RECORD file"** —
+  delete the stale dist-info, e.g.
+  `Remove-Item -Recurse <venv>/Lib/site-packages/typing_extensions-*.dist-info` for the old
+  version, then `pip install "mcp>=1.2"`.
+- **All searches 503 with "minimum free disk space (5000MB) reached … dispatch"** — Splunk
+  refuses to run *any* search when its dispatch volume is below `minFreeSpace`. Either free
+  disk on the Splunk drive, or lower the threshold:
+  `POST /services/configs/conf-server/diskUsage` with `minFreeSpace=2000` (takes effect
+  immediately, no restart). Long term, free real disk space — 2000 MB is a thin margin.
+- **Queries silently return 0 rows** — the server prepends its own `search ` to non-pipe
+  queries; SentinelLoop's `McpSplunk` already strips a leading `search ` to avoid
+  `search search …`. Also note BOTS v3 is 2018 data, so the client passes `earliest_time=0`.
+
+## Restarting the server later
+After a reboot, relaunch it:
+```bash
+cd splunk-mcp-server2/python && python server.py   # SSE on 127.0.0.1:8050
+```
+
 ## Demo tip
 Show **Settings → Backend = "LIVE (Splunk MCP Server)"** and hit **Test Connection** on
 camera, then run the hero investigation — every SPL the agent writes is being executed

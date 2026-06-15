@@ -321,7 +321,7 @@ class Shell(QMainWindow):
             audit_csv=self._state["audit_csv"])
         self._worker.step.connect(self._console.add_step)
         self._worker.finished_verdict.connect(self._on_verdict)
-        self._worker.failed.connect(lambda msg: print("agent failed:", msg))
+        self._worker.failed.connect(self._console.show_error)
         self._worker.start()
 
     def _on_verdict(self, verdict):

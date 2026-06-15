@@ -123,10 +123,23 @@ class AgentConsoleScreen(QWidget):
         if running:
             self._pulse.start()
             self._status.setText("INVESTIGATING")
+            self._status.setStyleSheet(f"color:{theme.ACCENT_BRIGHT}; font-weight:700;")
         else:
             self._pulse.stop()
             self._status.setText("DONE")
             self._status.setStyleSheet(f"color:{theme.K_RESULT}; font-weight:700;")
+
+    def show_error(self, msg: str) -> None:
+        """Render a failed investigation instead of hanging on INVESTIGATING."""
+        friendly = msg
+        if "minimum free disk space" in msg or "503" in msg:
+            friendly = ("Splunk refused the search — it is below its minimum free disk "
+                        "space on the dispatch volume (needs ~5 GB free on C:). Free up "
+                        "disk or lower [diskUsage] minFreeSpace in server.conf, then retry.")
+        self.add_step(StepEvent(StepKind.ERROR, "Investigation failed", friendly))
+        self._pulse.stop()
+        self._status.setText("FAILED")
+        self._status.setStyleSheet(f"color:{theme.K_ERROR}; font-weight:700;")
 
     def add_step(self, ev: StepEvent) -> None:
         card = _StepCard(ev)

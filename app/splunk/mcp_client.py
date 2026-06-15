@@ -94,7 +94,22 @@ class McpSplunk(LiveSplunk):
             return super()._oneshot(search)
 
     async def _asearch(self, search: str) -> list[dict]:
-        result = await self._session.call_tool(self._search_tool, {self._search_arg: search})
+        # The Splunk MCP server prepends its own "search " to any query not starting
+        # with "|", so strip our leading "search " to avoid "search search ...".
+        q = search.strip()
+        if q[:7].lower() == "search ":
+            q = q[7:].lstrip()
+        # BOTS v3 is 2018 data, so search all-time (earliest=0); risk_tolerance=100
+        # skips the server's SPL guardrail (lab/demo). search_oneshot returns rows
+        # under the "events" key.
+        args = {
+            self._search_arg: q,
+            "earliest_time": "0",
+            "latest_time": "now",
+            "output_format": "json",
+            "risk_tolerance": 100,
+        }
+        result = await self._session.call_tool(self._search_tool, args)
         return _rows_from_mcp(result)
 
     def test_connection(self) -> tuple[bool, str]:
@@ -112,9 +127,11 @@ def _rows_from_mcp(result: Any) -> list[dict]:
     # Prefer structured content if the server provides it.
     structured = getattr(result, "structuredContent", None)
     if isinstance(structured, dict):
-        for key in ("results", "rows", "data"):
-            if isinstance(structured.get(key), list):
-                return structured[key]
+        # FastMCP wraps a dict return under a top-level "result" key.
+        inner = structured.get("result") if isinstance(structured.get("result"), dict) else structured
+        for key in ("events", "results", "rows", "data"):
+            if isinstance(inner.get(key), list):
+                return inner[key]
     # Otherwise parse the text content blocks.
     text_parts: list[str] = []
     for block in getattr(result, "content", []) or []:
@@ -143,7 +160,7 @@ def _rows_from_mcp(result: Any) -> list[dict]:
     if isinstance(data, list):
         return data
     if isinstance(data, dict):
-        for key in ("results", "rows", "data"):
+        for key in ("events", "results", "rows", "data"):
             if isinstance(data.get(key), list):
                 return data[key]
         return [data]
