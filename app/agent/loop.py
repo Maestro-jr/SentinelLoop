@@ -83,7 +83,23 @@ class TriageAgent:
         timeline: list[tuple[str, str]] = []
         verdict: Verdict | None = None
 
-        for i in range(_MAX_AUTO_STEPS):
+        # Optional seed step: run the inherited legacy query first so the labeled
+        # DRIFT→HEAL beat shows, then hand off to the LLM with that finding in hand.
+        seed_fn = getattr(self.planner, "seed_step", None)
+        seed = seed_fn(alert) if seed_fn else None
+        start = 0
+        if seed is not None:
+            self._step(StepEvent(StepKind.THOUGHT, "Step 1: reasoning", seed.thought))
+            rows = self._run_with_heal(seed)
+            self._step(StepEvent(StepKind.RESULT, seed.result_caption or f"{len(rows)} result(s)",
+                                 f"{len(rows)} row(s) returned.", rows=rows[:20]))
+            if rows:
+                timeline.append((rows[0].get("_time", ""), seed.result_caption or "finding"))
+            history.append({"spl": seed.healed_spl or seed.spl,
+                            "row_count": len(rows), "rows": rows[:8]})
+            start = 1
+
+        for i in range(start, _MAX_AUTO_STEPS):
             remaining = _MAX_AUTO_STEPS - i - 1
             try:
                 action = self.planner.decide(alert, history, remaining)

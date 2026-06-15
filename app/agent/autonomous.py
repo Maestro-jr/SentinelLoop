@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 
 from app.agent.llm import OpenAICompatLLM, extract_json, LLMError
+from app.agent.planner import InvestigationStep
 
 _SYSTEM = """You are SentinelLoop, an autonomous SOC tier-1 analyst investigating a \
 security alert using Splunk (the BOTS v3 dataset). You decide ONE next step at a time.
@@ -52,6 +53,27 @@ class AutonomousPlanner:
     @property
     def model_name(self) -> str:
         return self.llm.model
+
+    def seed_step(self, alert) -> InvestigationStep | None:
+        """An inherited legacy saved-search query run before the LLM takes over — it uses
+        a renamed field so it drifts and self-heals (a labeled DRIFT→HEAL beat), then the
+        autonomous loop reasons from its results."""
+        if alert.raw.get("detection") != "ps_encoded":
+            return None
+        h = alert.host
+        return InvestigationStep(
+            thought=("This alert arrived with an inherited saved-search query for the process "
+                     "tree on this host — I'll start by running it."),
+            spl=(f"search index=botsv3 sourcetype=wineventlog:security EventCode=4688 host={h} "
+                 f"process_name=*powershell* | table _time, Creator_Process_Name, "
+                 f"New_Process_Name, Process_Command_Line, Account_Name"),
+            drift_field="process_name",
+            healed_spl=(f"search index=botsv3 sourcetype=wineventlog:security EventCode=4688 "
+                        f"host={h} (New_Process_Name=*powershell* OR Process_Command_Line=*powershell*) "
+                        f"| table _time, Creator_Process_Name, New_Process_Name, "
+                        f"Process_Command_Line, Account_Name"),
+            result_caption="Encoded PowerShell command captured",
+        )
 
     def decide(self, alert, history: list[dict], remaining: int = 3,
                force_verdict: bool = False) -> dict:
